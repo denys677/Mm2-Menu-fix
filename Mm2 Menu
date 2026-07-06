@@ -1,0 +1,60 @@
+-- MM2 Fix Version (t.me/menu_script)
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LP = Players.LocalPlayer
+
+-- Настройки
+local ESP_Active = false
+local Autofarm = false
+
+-- Функция для ESP (поиск роли)
+local function GetRole(player)
+    if not player.Character then return nil end
+    local char = player.Character
+    -- Проверяем, есть ли нож или пистолет в руках или инвентаре
+    if char:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife") then return "Murder" end
+    if char:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun") then return "Sheriff" end
+    return "Innocent"
+end
+
+-- Основной цикл для ESP и Автофарма
+task.spawn(function()
+    while true do
+        task.wait(0.5) -- Баланс между скоростью и лагами
+        
+        -- ESP часть
+        if ESP_Active then
+            for _, p in ipairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    local role = GetRole(p)
+                    local highlight = p.Character:FindFirstChild("MM2_ESP")
+                    if not highlight then
+                        highlight = Instance.new("Highlight", p.Character)
+                        highlight.Name = "MM2_ESP"
+                    end
+                    
+                    if role == "Murder" then
+                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    elseif role == "Sheriff" then
+                        highlight.FillColor = Color3.fromRGB(0, 0, 255)
+                    else
+                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
+                    end
+                end
+            end
+        end
+
+        -- Autofarm часть
+        if Autofarm and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+            -- Ищем любые объекты с названием Coin или похожие
+            for _, obj in pairs(workspace:GetDescendants()) do
+                if (obj.Name == "Coin" or obj.Name == "Coin_Cent" or obj.Name == "GoldPile") and obj:IsA("BasePart") then
+                    LP.Character.HumanoidRootPart.CFrame = obj.CFrame
+                    task.wait(0.1) -- Небольшая пауза, чтобы не кикнуло
+                end
+            end
+        end
+    end
+end)
+
+-- (Код GUI кнопок остался таким же, просто привяжи их к ESP_Active и Autofarm)
