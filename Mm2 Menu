@@ -1,60 +1,83 @@
--- MM2 Fix Version (t.me/menu_script)
+--[[ 
+    MM2 Premium Menu
+    Created for Sales | Optimized Performance
+    t.me/menu_script
+]]
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LP = Players.LocalPlayer
 
--- Настройки
-local ESP_Active = false
-local Autofarm = false
+-- GUI Setup
+local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 180, 0, 250)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
--- Функция для ESP (поиск роли)
-local function GetRole(player)
-    if not player.Character then return nil end
-    local char = player.Character
-    -- Проверяем, есть ли нож или пистолет в руках или инвентаре
-    if char:FindFirstChild("Knife") or player.Backpack:FindFirstChild("Knife") then return "Murder" end
-    if char:FindFirstChild("Gun") or player.Backpack:FindFirstChild("Gun") then return "Sheriff" end
-    return "Innocent"
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "mm2 menu t.me/menu_script"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.Parent = MainFrame
+
+-- Функции
+local Settings = {ESP = false, Autofarm = false, InfJump = false}
+
+local function Toggle(name, pos, callback)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.Size = UDim2.new(0.9, 0, 0, 35)
+    btn.Position = pos
+    btn.Text = name
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.MouseButton1Click:Connect(function()
+        Settings[name] = not Settings[name]
+        btn.BackgroundColor3 = Settings[name] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(50, 50, 50)
+        callback(Settings[name])
+    end)
 end
 
--- Основной цикл для ESP и Автофарма
-task.spawn(function()
-    while true do
-        task.wait(0.5) -- Баланс между скоростью и лагами
-        
-        -- ESP часть
-        if ESP_Active then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    local role = GetRole(p)
-                    local highlight = p.Character:FindFirstChild("MM2_ESP")
-                    if not highlight then
-                        highlight = Instance.new("Highlight", p.Character)
-                        highlight.Name = "MM2_ESP"
-                    end
-                    
-                    if role == "Murder" then
-                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                    elseif role == "Sheriff" then
-                        highlight.FillColor = Color3.fromRGB(0, 0, 255)
-                    else
-                        highlight.FillColor = Color3.fromRGB(0, 255, 0)
-                    end
-                end
-            end
+-- ESP LOGIC
+RunService.Heartbeat:Connect(function()
+    if not Settings.ESP then return end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character then
+            local char = p.Character
+            local highlight = char:FindFirstChild("High") or Instance.new("Highlight", char)
+            highlight.Name = "High"
+            if char:FindFirstChild("Knife") then highlight.FillColor = Color3.new(1,0,0) -- Мардер
+            elseif char:FindFirstChild("Gun") then highlight.FillColor = Color3.new(0,0,1) -- Шериф
+            else highlight.FillColor = Color3.new(0,1,0) end -- Мирный
         end
+    end
+end)
 
-        -- Autofarm часть
-        if Autofarm and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            -- Ищем любые объекты с названием Coin или похожие
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if (obj.Name == "Coin" or obj.Name == "Coin_Cent" or obj.Name == "GoldPile") and obj:IsA("BasePart") then
-                    LP.Character.HumanoidRootPart.CFrame = obj.CFrame
-                    task.wait(0.1) -- Небольшая пауза, чтобы не кикнуло
+-- INF JUMP LOGIC
+UserInputService.JumpRequest:Connect(function()
+    if Settings.InfJump then
+        LP.Character:FindFirstChild("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+-- AUTOFARM LOGIC
+task.spawn(function()
+    while task.wait(0.3) do
+        if Settings.Autofarm then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name == "Coin" or v.Name == "Coin_Cent" then
+                    LP.Character.HumanoidRootPart.CFrame = v.CFrame
                 end
             end
         end
     end
 end)
 
--- (Код GUI кнопок остался таким же, просто привяжи их к ESP_Active и Autofarm)
+-- Кнопки в меню
+Toggle("ESP", UDim2.new(0.05, 0, 0.15, 0), function(v) Settings.ESP = v end)
+Toggle("Autofarm", UDim2.new(0.05, 0, 0.32, 0), function(v) Settings.Autofarm = v end)
+Toggle("InfJump", UDim2.new(0.05, 0, 0.49, 0), function(v) Settings.InfJump = v end)
